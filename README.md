@@ -15,7 +15,8 @@ A desktop-first visual meditation platform designed for office workers to restor
 - Custom animations and visual effects
 
 ## Live Demo
-[Try it here][](https://ohtheirany.github.io/mycalm/)
+- **[Try it here](https://ohtheirany.github.io/mycalm/)**
+- [Source Code](https://github.com/ohtheirany/mycalm)
 
 ## FUTURE IMPLEMENTATION
 - Customize meditations based off of post-meditation user feedback. Idea is to individualize meditations for each unique user, to make it the most powerful self-modulation tool for their respective purposes
