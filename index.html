@@ -1,0 +1,695 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CALM Visual Meditation</title>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #a7f3d0, #86efac, #6ee7b7);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'EB Garamond', serif;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .dark-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0);
+            pointer-events: none;
+            z-index: 1;
+            transition: background 60s ease-in-out;
+        }
+
+        .dark-overlay.darken {
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .dark-overlay.complete-dark {
+            background: rgba(0, 0, 0, 1);
+            transition: background 10s ease-in-out;
+        }
+
+        .dark-overlay.reset-transition {
+            transition: background 2s ease-out;
+        }
+
+        .meditation-container {
+            text-align: center;
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+        }
+
+        .title {
+            font-size: 3.2rem;
+            font-weight: bold;
+            color: #065f46;
+            margin-bottom: 40px;
+            position: absolute;
+            top: 45%;
+            transition: opacity 0.5s ease;
+            z-index: 10;
+            text-transform: lowercase;
+        }
+
+        .title .title-letter {
+            display: inline-block;
+            transition: all 0.5s ease-out;
+        }
+
+        .title .title-letter.fade-out {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .sphere-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 2s ease;
+        }
+
+        .sphere-container.visible {
+            opacity: 1;
+        }
+
+        .fade-wrapper {
+            opacity: 0;
+            animation: fadeIn 2s ease-in forwards;
+            will-change: opacity;
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .glow-fade { 
+            animation-delay: 0s;
+            opacity: 0;
+        }
+        .core-fade { 
+            animation-delay: 2s;
+            opacity: 0;
+        }
+        .sphere-fade { 
+            animation-delay: 2s;
+            opacity: 0;
+        }
+
+        .sphere-container.visible .glow-fade {
+            animation: fadeIn 2s ease-in forwards;
+        }
+        
+        .sphere-container.visible .core-fade,
+        .sphere-container.visible .sphere-fade {
+            animation: fadeIn 2s ease-in 2s forwards;
+        }
+
+        .bright-core {
+            width: 200px;
+            height: 200px;
+            border-radius: 100%;
+            background: radial-gradient(circle at center,
+                rgba(255, 255, 255, 1) 0%,
+                rgba(255, 254, 240, 0.95) 30%,
+                rgba(255, 250, 205, 0.7) 70%,
+                transparent 100%);
+            filter: blur(1px);
+            will-change: transform;
+        }
+
+        .bright-core.breathing {
+            animation: gentleBreathing 10s ease-in-out infinite;
+        }
+
+        .sphere-glow {
+            width: 646px;
+            height: 646px;
+            border-radius: 50%;
+            background: radial-gradient(circle at center,
+                rgba(255, 255, 255, 0.5) 0%,
+                rgba(255, 253, 230, 0.4) 10%,
+                rgba(255, 248, 200, 0.3) 25%,
+                rgba(255, 243, 170, 0.2) 40%,
+                rgba(255, 235, 140, 0.15) 60%,
+                rgba(255, 225, 100, 0.08) 80%,
+                transparent 100%);
+            filter: blur(30px);
+            animation: expand 60s ease-out forwards;
+            will-change: transform;
+        }
+
+        .sphere {
+            width: 504px;
+            height: 504px;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, 
+                rgba(255, 255, 255, 0.95) 0%,
+                rgba(255, 252, 220, 0.85) 8%,
+                rgba(255, 248, 190, 0.7) 20%,
+                rgba(255, 243, 160, 0.5) 35%,
+                rgba(255, 235, 130, 0.35) 50%,
+                rgba(255, 225, 100, 0.2) 70%,
+                rgba(255, 215, 70, 0.1) 85%,
+                transparent 100%);
+            filter: blur(25px);
+            will-change: transform;
+        }
+
+        .sphere.breathing {
+            animation: breathing 10s ease-in-out infinite;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        @keyframes breathing {
+            0%, 100% { transform: scale(1); }
+            50%      { transform: scale(1.05); }
+        }
+
+        @keyframes gentleBreathing {
+            0%, 100% { transform: scale(1); }
+            50%      { transform: scale(1.2); }
+        }
+
+        @keyframes expand {
+            0%   { transform: scale(0.65); }
+            100% { transform: scale(1); }
+        }
+
+        .instruction-text {
+            font-size: 1.5rem;
+            color: rgba(6, 95, 70, 0.6);
+            line-height: 1.4;
+            opacity: 0;
+            transition: opacity 1.25s ease-in-out;
+            margin: 0;
+            padding: 20px;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 600px;
+            z-index: 10;
+        }
+
+        .instruction-text .letter {
+            opacity: 0;
+            display: inline-block;
+            animation: letterFadeIn 0.8s ease-out forwards;
+        }
+
+        @keyframes letterFadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        .small-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #c6f68d, #a8e063, #7ed321);
+            z-index: 5;
+            opacity: 0;
+            transition: opacity 2s ease;
+        }
+
+        .small-circle.visible {
+            opacity: 0.6;
+        }
+
+        .instruction-text.visible {
+            opacity: 1;
+        }
+
+        .instruction-text.fading-out {
+            transition: opacity 1s ease-in-out;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #065f46;
+            border-radius: 25px;
+            color: #065f46;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            text-transform: lowercase;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .duration-selector {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .duration-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #065f46;
+            border-radius: 20px;
+            color: #065f46;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .duration-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .duration-btn.active {
+            background: rgba(6, 95, 70, 0.2);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <audio id="backgroundMusic" preload="auto">
+        <source src="Heather_5min.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <div class="dark-overlay" id="darkOverlay"></div>
+    
+    <div class="meditation-container">
+        <div class="title" id="title">calm</div>
+        
+        <div class="sphere-container" id="sphereContainer">
+            <div class="fade-wrapper glow-fade">
+                <div class="sphere-glow"></div>
+            </div>
+            <div class="fade-wrapper core-fade">
+                <div class="bright-core" id="brightCore"></div>
+            </div>
+            <div class="fade-wrapper sphere-fade">
+                <div class="sphere" id="sphere"></div>
+            </div>
+        </div>
+
+        <div class="instruction-text" id="instructionText"></div>
+        
+        <div class="small-circle" id="smallCircle"></div>
+    </div>
+
+    <div class="duration-selector">
+        <button class="duration-btn active" data-duration="5">5 min</button>
+        <button class="duration-btn" data-duration="12">12 min</button>
+        <button class="duration-btn" data-duration="16">16 min</button>
+    </div>
+
+    <div class="controls">
+        <button onclick="startMeditation()" id="startBtn">start</button>
+        <button onclick="resetMeditation()" id="resetBtn">reset</button>
+    </div>
+
+    <script>
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        backgroundMusic.volume = 0.7;
+
+        const meditationSections = {
+            base: {
+                instructions: [
+                    { time: 10, text: "in your chair", duration: 3, pause: 3000 },
+                    { time: 17, text: "seat yourself comfortably", duration: 3, pause: 5000 },
+                    { time: 26, text: "", duration: 0, pause: 2000 },
+                    { time: 28, text: "comfortable attention", duration: 3, pause: 3000 },
+                    { time: 35, text: "without strain", duration: 3, pause: 4000 },
+                    { time: 43, text: "", duration: 0, pause: 3000 },
+                    { time: 46, text: "you might rest your hands", duration: 3, pause: 3000 },
+                    { time: 53, text: "on your lap or your table", duration: 3, pause: 5000 },
+                    { time: 62, text: "", duration: 0, pause: 3000 },
+                    { time: 65, text: "take one deep breath", duration: 3, pause: 8000, trigger: "breathing" },
+                    { time: 77, text: "", duration: 0, pause: 2000 },
+                    { time: 79, text: "notice", duration: 3, pause: 1000 },
+                    { time: 84, text: "your shoulders", duration: 3, pause: 4000 },
+                    { time: 92, text: "", duration: 0, pause: 2000 },
+                    { time: 94, text: "they might be raised", duration: 3, pause: 3000 },
+                    { time: 101, text: "", duration: 0, pause: 2000 },
+                    { time: 103, text: "you can let them down", duration: 3, pause: 6000 },
+                    { time: 113, text: "", duration: 0, pause: 3000 },
+                    { time: 116, text: "notice", duration: 3, pause: 1000 },
+                    { time: 121, text: "your breath", duration: 3, pause: 4000 },
+                    { time: 129, text: "", duration: 0, pause: 2000 },
+                    { time: 131, text: "it goes in and out", duration: 3, pause: 5000 },
+                    { time: 140, text: "", duration: 0, pause: 3000 },
+                    { time: 143, text: "it might be shallow. it might not be", duration: 3, pause: 4000 },
+                    { time: 151, text: "", duration: 0, pause: 3000 },
+                    { time: 154, text: "simply observe it", duration: 3, pause: 6000 },
+                    { time: 164, text: "", duration: 0, pause: 4000 },
+                    { time: 168, text: "notice", duration: 3, pause: 1000 },
+                    { time: 173, text: "thoughts", duration: 3, pause: 3000 }
+                ],
+                duration: 180
+            },
+            extended12: {
+                instructions: [
+                    { time: 0, text: "deepen your awareness", duration: 3, pause: 5000 },
+                    { time: 8, text: "feel the calm expand", duration: 3, pause: 5000 },
+                    { time: 16, text: "let your mind settle", duration: 3, pause: 5000 }
+                ],
+                duration: 420
+            },
+            extended16: {
+                instructions: [
+                    { time: 0, text: "embrace profound stillness", duration: 3, pause: 5000 },
+                    { time: 8, text: "connect with inner peace", duration: 3, pause: 5000 },
+                    { time: 16, text: "be present in this moment", duration: 3, pause: 5000 }
+                ],
+                duration: 240
+            },
+            closing: {
+                instructions: [
+                    { time: 0, text: "", duration: 0, pause: 2000 },
+                    { time: 2, text: "", duration: 0, pause: 5000 },
+                    { time: 7, text: "when one appears", duration: 3, pause: 3000 },
+                    { time: 14, text: "it then disappears", duration: 3, pause: 5000 },
+                    { time: 23, text: "", duration: 0, pause: 3000 },
+                    { time: 26, text: "you can let them", duration: 3, pause: 4000 },
+                    { time: 34, text: "", duration: 0, pause: 2000 },
+                    { time: 36, text: "come back to", duration: 3, pause: 2000 },
+                    { time: 42, text: "the breath", duration: 3, pause: 8000 }
+                ],
+                duration: 54
+            }
+        };
+
+        let selectedDuration = 5;
+        let isPlaying = false;
+        let timeElapsed = 0;
+        let mainInterval;
+        let currentInstruction = null;
+        let textTimeout;
+        let fadeTimeout;
+        let breathingStarted = false;
+        let compiledTimeline = [];
+
+        const titleElement = document.getElementById('title');
+        const textElement = document.getElementById('instructionText');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const sphereContainer = document.getElementById('sphereContainer');
+        const brightCore = document.getElementById('brightCore');
+        const sphere = document.getElementById('sphere');
+        const darkOverlay = document.getElementById('darkOverlay');
+        const smallCircle = document.getElementById('smallCircle');
+
+        document.querySelectorAll('.duration-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if (!isPlaying) {
+                    document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    selectedDuration = parseInt(e.target.dataset.duration);
+                }
+            });
+        });
+
+        function initializeTitle() {
+            const titleText = titleElement.textContent;
+            titleElement.innerHTML = '';
+            titleText.split('').forEach(letter => {
+                const span = document.createElement('span');
+                span.classList.add('title-letter');
+                span.textContent = letter;
+                titleElement.appendChild(span);
+            });
+        }
+
+        function compileTimeline(duration) {
+            let timeline = [];
+            let currentTime = 0;
+            
+            meditationSections.base.instructions.forEach(inst => {
+                timeline.push({ ...inst, absoluteTime: inst.time, section: 'base' });
+            });
+            currentTime = meditationSections.base.duration;
+            
+            if (duration >= 12) {
+                meditationSections.extended12.instructions.forEach(inst => {
+                    timeline.push({ ...inst, absoluteTime: currentTime + inst.time, section: 'extended12' });
+                });
+                currentTime += meditationSections.extended12.duration;
+            }
+            
+            if (duration >= 16) {
+                meditationSections.extended16.instructions.forEach(inst => {
+                    timeline.push({ ...inst, absoluteTime: currentTime + inst.time, section: 'extended16' });
+                });
+                currentTime += meditationSections.extended16.duration;
+            }
+            
+            meditationSections.closing.instructions.forEach(inst => {
+                timeline.push({ ...inst, absoluteTime: currentTime + inst.time, section: 'closing' });
+            });
+            
+            timeline.push({ absoluteTime: Math.floor(duration * 60 * 0.4), effect: 'startDarkening' });
+            timeline.push({ absoluteTime: Math.floor(duration * 60 * 0.8), effect: 'completeBlack' });
+            
+            return timeline;
+        }
+
+        function animateText(text) {
+            textElement.innerHTML = '';
+            const letters = text.split('');
+            letters.forEach((letter, index) => {
+                const span = document.createElement('span');
+                span.classList.add('letter');
+                span.textContent = letter === ' ' ? '\u00A0' : letter;
+                span.style.animationDelay = `${index * 0.05}s`;
+                textElement.appendChild(span);
+            });
+        }
+
+        function showInstruction(instruction) {
+            if (textTimeout) clearTimeout(textTimeout);
+            if (fadeTimeout) clearTimeout(fadeTimeout);
+            
+            if (instruction.trigger === 'breathing' && !breathingStarted) {
+                breathingStarted = true;
+                brightCore.classList.add('breathing');
+                sphere.classList.add('breathing');
+            }
+            
+            if (instruction.text.trim() === '') {
+                textElement.classList.add('fading-out');
+                textElement.classList.remove('visible');
+                fadeTimeout = setTimeout(() => {
+                    textElement.innerHTML = '';
+                    textElement.classList.remove('fading-out');
+                }, 1000);
+            } else {
+                animateText(instruction.text);
+                textElement.classList.add('visible');
+                textElement.classList.remove('fading-out');
+                
+                if (instruction.duration > 0) {
+                    textTimeout = setTimeout(() => {
+                        textElement.classList.add('fading-out');
+                        textElement.classList.remove('visible');
+                        fadeTimeout = setTimeout(() => {
+                            textElement.innerHTML = '';
+                            textElement.classList.remove('fading-out');
+                        }, 1000);
+                    }, instruction.duration * 1000);
+                }
+            }
+        }
+
+        function meditationLoop() {
+            timeElapsed++;
+            
+            compiledTimeline.forEach(item => {
+                if (item.absoluteTime === timeElapsed) {
+                    if (item.text !== undefined) {
+                        currentInstruction = item;
+                        showInstruction(item);
+                    } else if (item.effect) {
+                        switch(item.effect) {
+                            case 'startDarkening':
+                                darkOverlay.classList.add('darken');
+                                break;
+                            case 'completeBlack':
+                                darkOverlay.classList.remove('darken');
+                                darkOverlay.classList.add('complete-dark');
+                                break;
+                        }
+                    }
+                }
+            });
+            
+            if (timeElapsed >= selectedDuration * 60) {
+                endMeditation();
+            }
+        }
+
+        function startMeditation() {
+            if (isPlaying) return;
+            
+            isPlaying = true;
+            startBtn.disabled = true;
+            backgroundMusic.play().catch(e => console.error('Audio playback failed:', e));
+            
+            compiledTimeline = compileTimeline(selectedDuration);
+            
+            const titleLetters = titleElement.querySelectorAll('.title-letter');
+            titleLetters.forEach((letter, index) => {
+                setTimeout(() => {
+                    letter.classList.add('fade-out');
+                }, index * 100);
+            });
+            
+            setTimeout(() => {
+                titleElement.style.display = 'none';
+                sphereContainer.classList.add('visible');
+                smallCircle.classList.add('visible');
+                mainInterval = setInterval(meditationLoop, 1000);
+            }, 800);
+        }
+
+        function resetMeditation() {
+            isPlaying = false;
+            timeElapsed = 0;
+            breathingStarted = false;
+            startBtn.disabled = false;
+            
+            if (mainInterval) clearInterval(mainInterval);
+            if (textTimeout) clearTimeout(textTimeout);
+            if (fadeTimeout) clearTimeout(fadeTimeout);
+            
+            backgroundMusic.pause();
+            backgroundMusic.currentTime = 0;
+            
+            titleElement.style.display = 'block';
+            titleElement.style.opacity = '1';
+            const titleLetters = titleElement.querySelectorAll('.title-letter');
+            titleLetters.forEach(letter => {
+                letter.classList.remove('fade-out');
+            });
+            
+            sphereContainer.classList.remove('visible');
+            textElement.classList.remove('visible', 'fading-out');
+            textElement.innerHTML = '';
+            smallCircle.classList.remove('visible');
+            
+            brightCore.classList.remove('breathing');
+            sphere.classList.remove('breathing');
+            
+            darkOverlay.classList.add('reset-transition');
+            darkOverlay.classList.remove('darken', 'complete-dark');
+            setTimeout(() => {
+                darkOverlay.classList.remove('reset-transition');
+            }, 2000);
+        }
+
+        function endMeditation() {
+            if (mainInterval) clearInterval(mainInterval);
+            isPlaying = false;
+            startBtn.disabled = false;
+            backgroundMusic.pause();
+            backgroundMusic.currentTime = 0;
+            animateText('meditation complete');
+            textElement.classList.add('visible');
+        }
+
+        initializeTitle();
+    </script>
+</body>
+</html>
