@@ -30,5 +30,4 @@ A desktop-first visual meditation platform designed for office workers to restor
 3. Click "start" to begin meditation
 
 ## Credits
-- Development: [Your Name]
-- Music Composition: [Your Name] - "Heather" (5 min)
+- Music Composition: Ira Rauf - "Heather" (5 min)
