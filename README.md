@@ -2,8 +2,9 @@
 
 A desktop-first visual meditation platform designed for office workers to restore mindfulness during the workday. And intended as a tool for clinical psychologists and their patients.
 
-Meditation instruction, second by second invocation logic coded manually.
-Everything else AI coded.
+This was an experiment in AI-assisted coding:
+*Meditation instruction, second by second invocation logic coded manually.
+*Everything else AI coded.
 
 ## Features
 - Meditation duration: 5mins
