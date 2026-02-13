@@ -1,9 +1,12 @@
 # CALM - Visual Meditation Experience
 
-A desktop-first visual meditation platform designed for office workers to restore mindfulness during the workday.
+A desktop-first visual meditation platform designed for office workers to restore mindfulness during the workday. And intended as a tool for clinical psychologists and their patients.
+
+Meditation instruction, second by second invocation logic coded manually
+Evyerthing else AI coded
 
 ## Features
-- Three meditation durations: 5, 12, and 16 minutes
+- Meditation duration: 5mins
 - Calming visual animations synchronized with guided breathing
 - Original ambient music composition
 - Research-backed meditation techniques (color theory)
